@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   redis-state:
     image: faasm.azurecr.io/redis:${FAASM_VERSION}
@@ -69,12 +71,24 @@ services:
       timeout: 3s
       retries: 10
 
+  identifier:
+    image: python:3.9-slim
+    container_name: identifier
+    ports:
+      - "1081:1081"
+    volumes:
+      - "./worker-index-server.py:/app/worker-index-server.py"  # Mount the script into the container
+    working_dir: /app
+    command: ["python", "worker-index-server.py"]
+
+
   # Distributed worker, used for executing as a local cluster
   worker:
     image: ${FAASM_WORKER_IMAGE}
     depends_on:
       - planner
       - upload
+      - identifier
     expose:
       - "5000"
     privileged: true
@@ -102,6 +116,8 @@ services:
       - REDIS_STATE_HOST=redis-state
       - SGX_AESM_ADDR=1
       - TLESS_ENABLED=${TLESS_ENABLED:-on}
+      - WORKER_TASKSET_LIST=${WORKER_TASKSET_LIST} # strings after taskset -c (e.g. 0-3,4-7,8-11)
+      - WORKER_NUMA_NODE_LIST=${WORKER_NUMA_NODE_LIST} # numa nodes (e.g. 0,1,0)
 
   # C/C++ functions
   cpp:

@@ -30,6 +30,23 @@ RUN chmod +x /entrypoint.sh
 RUN groupadd -g 1000 faasm
 RUN useradd -u 1000 -g 1000 faasm
 
+# Crazy command to parse the Taskset & NUMA configs from env
+# TODO: should wrap this to some external script for better readability
 ENTRYPOINT ["/entrypoint.sh"]
-CMD "/build/faasm/bin/pool_runner"
-
+CMD ["bash", "-c", "\
+  # Get a unique index from the identifier service\n\
+  index=$(curl -s http://identifier:1081); \
+  echo \"Received worker index: $index\"; \
+  IFS=',' read -r -a taskset_list <<< \"$WORKER_TASKSET_LIST\"; \
+  IFS=',' read -r -a numa_list <<< \"$WORKER_NUMA_NODE_LIST\"; \
+  selected_taskset=${taskset_list[$((index-1))]}; \
+  selected_numa=${numa_list[$((index-1))]}; \
+  cmd='/build/faasm/bin/pool_runner'; \
+  if [ -n \"$selected_taskset\" ]; then \
+      cmd=\"taskset -c $selected_taskset $cmd\"; \
+  fi; \
+  if [ -n \"$selected_numa\" ]; then \
+      cmd=\"numactl --cpunodebind=$selected_numa --membind=$selected_numa $cmd\"; \
+  fi; \
+  echo \"Final command to be executed: $cmd\"; \
+  exec $cmd"]
