@@ -37,8 +37,8 @@ CMD ["bash", "-c", "\
   # Get a unique index from the identifier service\n\
   index=$(curl -s http://identifier:1081); \
   echo \"Received worker index: $index\"; \
-  IFS=';' read -r -a taskset_list <<< \"$WORKER_TASKSET_LIST\"; \
-  IFS=';' read -r -a numa_list <<< \"$WORKER_NUMA_NODE_LIST\"; \
+  IFS='#' read -r -a taskset_list <<< \"$WORKER_TASKSET_LIST\"; \
+  IFS='#' read -r -a numa_list <<< \"$WORKER_NUMA_NODE_LIST\"; \
   selected_taskset=${taskset_list[$((index-1))]}; \
   selected_numa=${numa_list[$((index-1))]}; \
   cmd='/build/faasm/bin/pool_runner'; \
