@@ -30,6 +30,9 @@ RUN chmod +x /entrypoint.sh
 RUN groupadd -g 1000 faasm
 RUN useradd -u 1000 -g 1000 faasm
 
+RUN echo "OS release information:" && cat /etc/os-release && \
+    apt-get update && apt-get install -y numactl
+
 # Crazy command to parse the Taskset & NUMA configs from env
 # TODO: should wrap this to some external script for better readability
 ENTRYPOINT ["/entrypoint.sh"]
@@ -49,4 +52,5 @@ CMD ["bash", "-c", "\
       cmd=\"numactl --cpunodebind=$selected_numa --membind=$selected_numa $cmd\"; \
   fi; \
   echo \"Final command to be executed: $cmd\"; \
+  sleep 1; \
   exec $cmd"]
